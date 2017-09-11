@@ -12,13 +12,14 @@ s.connect(('127.0.0.1', 12345))
 s.send(b'HEYMAYUN')
 
 capture = mss()
+# size = capture.monitors[1]
+size = {'left': 0, 'top': 0, 'width': 365, 'height': 670}
 count = 0
-while count < 5:
-    print('waiting...')
+while True:
     if s.recv(128) != b'GET': continue
     print('starting to send!')
 
-    image = capture.grab(capture.monitors[1].copy())
+    image = capture.grab(size.copy())
     s.send(struct.pack("III", len(image.rgb), *image.size))
     s.sendall(image.rgb)
 
