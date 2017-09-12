@@ -1,13 +1,11 @@
 import socket as s
 import qrcode
-from io import StringIO, BytesIO
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
-import cv2
-import numpy
 import struct
 import sys
+from aes import AESCipher
 
 plt.ion()
 
@@ -17,11 +15,12 @@ class Server:
         self.socket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
         self.socket.bind(('', 12345)) # TODO(mitch): change to 0 when done
         self.socket.listen(1)
-        self.plot = None
 
         port = self.socket.getsockname()[1]
+        self.plot = plt.imshow(qrcode.make(port))
+        plt.axis('off')
+        plt.pause(sys.float_info.epsilon)
         print('waiting on connection on port', port)
-        # qrcode.make(port).show()
 
     def waitForConnection(self):
         while True:
@@ -33,20 +32,20 @@ class Server:
 
     def receiveImage(self, connection):
         connection.send(b'GET')
-        print('getting!')
+        # print('getting!')
 
         metadataPacket = connection.recv(struct.calcsize("III"))
         length, width, height = struct.unpack("III", metadataPacket)
-        print('got metadata!', length, (width, height))
+        # print('got metadata!', length, (width, height))
 
         buf = b''
         while True:
             buf += connection.recv(length)
             if len(buf) == length:
                 break
-        print('got image! length =', len(buf))
+        # print('got image! length =', len(buf))
 
-        return Image.frombytes('RGB', (width, height), buf)
+        return Image.frombytes('RGB', (width, height), AESCipher('hey').decrypt(buf))
 
     def run(self):
         connection = self.waitForConnection()
@@ -56,11 +55,10 @@ class Server:
             start = time.time()
             image = self.receiveImage(connection)
 
-            if self.plot is None:
-                self.plot = plt.imshow(image)
             self.plot.set_data(image)
+            plt.axes().set_aspect(image.size[1] / image.size[0])
             plt.pause(sys.float_info.epsilon)
-            
+
             fps = 1.0 / (time.time() - start)
             print(f'FPS: {fps:.4}')
 

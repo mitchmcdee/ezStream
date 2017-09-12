@@ -1,11 +1,7 @@
 import socket
-import pyscreenshot
-from PIL import Image
 from mss import mss
-import numpy
-from io import BytesIO
 import struct
-import cv2
+from aes import AESCipher
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('127.0.0.1', 12345))
@@ -20,8 +16,9 @@ while True:
     print('starting to send!')
 
     image = capture.grab(size.copy())
-    s.send(struct.pack("III", len(image.rgb), *image.size))
-    s.sendall(image.rgb)
+    message = AESCipher('hey').encrypt(image.rgb)
+    s.send(struct.pack("III", len(message), *image.size))
+    s.sendall(message)
 
     print(f'sent image #{count}')
     count += 1
