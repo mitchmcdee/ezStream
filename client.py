@@ -2,6 +2,7 @@ import socket
 from mss import mss
 import struct
 from aes import AESCipher
+from zlib import compress
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('127.0.0.1', 12345))
@@ -16,7 +17,7 @@ while True:
     print('starting to send!')
 
     image = capture.grab(size.copy())
-    message = AESCipher('hey').encrypt(image.rgb)
+    message = AESCipher('hey').encrypt(compress(image.rgb))
     s.send(struct.pack("III", len(message), *image.size))
     s.sendall(message)
 
