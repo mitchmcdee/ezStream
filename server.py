@@ -19,26 +19,31 @@ class Server:
         self.socket.bind(('', 12345)) # TODO(mitch): change to 0 when done
         self.socket.listen(1)
 
-        self.connection = None
+        self.sequenceNumber = 0
+
         port = self.socket.getsockname()[1]
         self.plot = plt.imshow(qrcode.make(port))
         plt.axis('off')
         plt.pause(sys.float_info.epsilon)
+
         print('waiting on connection on port', port)
         print(token_bytes(16)) # TODO(mitch): use this as the password in QR code
 
     def waitForConnection(self):
         while True:
             connection = self.socket.accept()[0]
-            if connection.recv(128) == b'HEYMAYUN': break
+            if connection.recv(128) == b'HEYMAYUN': break # Success
             connection.close()
 
         self.connection = connection
 
-    def receiveImage(self):
+    def requestImage(self):
+        # sequenceBytes = bytes(str(self.sequenceNumber), encoding='utf-8')
         self.connection.send(b'GET')
-        # print('getting!')
+        # sequenceNumber += 1
+        #TODO(mitch): add sequence number? bundle all into one packet? buffer on other end?
 
+    def receiveImage(self):
         metadataPacket = self.connection.recv(struct.calcsize("III"))
         length, width, height = struct.unpack("III", metadataPacket)
         print('got metadata!', length, (width, height))
@@ -54,14 +59,15 @@ class Server:
 
     def ImageWorker(self, framebuffer):
         while True:
-            framebuffer.put(self.receiveImage())
+            self.requestImage()
+            image = self.receiveImage()
+            framebuffer.put(image)
 
     def run(self):
         self.waitForConnection()
         print('connected!')
 
         framebuffer = Queue()
-
         p = Process(target=self.ImageWorker, args=(framebuffer,))
         p.daemon = True
         p.start()

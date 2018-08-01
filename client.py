@@ -17,7 +17,7 @@ while True:
     print('starting to send!')
 
     image = capture.grab(size.copy())
-    message = AESCipher('hey').encrypt(compress(image.rgb))
+    message = AESCipher('hey').encrypt(compress(image.rgb, 2))
     s.send(struct.pack("III", len(message), *image.size))
     s.sendall(message)
 
